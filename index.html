@@ -591,7 +591,7 @@
 
     <!-- JEFES -->
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
-      <span style="font-size:15px; font-weight:600">Jefes de cosecha</span>
+      <span style="font-size:15px; font-weight:600">Cargado por</span>
       <button class="btn btn-sm btn-primary" onclick="toggleFormJefe()">
         <svg viewBox="0 0 24 24" style="width:14px;height:14px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Agregar
@@ -606,7 +606,7 @@
         <label>PIN (4 dígitos)</label>
         <input type="number" id="nuevo-jefe-pin" placeholder="Ej: 1234" maxlength="4" inputmode="numeric">
       </div>
-      <button class="btn btn-primary" onclick="agregarJefe()" style="margin-top:6px">Crear jefe</button>
+      <button class="btn btn-primary" onclick="agregarJefe()" style="margin-top:6px">Crear usuario</button>
       <button class="btn btn-ghost" onclick="toggleFormJefe()">Cancelar</button>
     </div>
     <div class="card" style="padding:4px 16px; margin-bottom:16px">
@@ -777,7 +777,7 @@ function guardarAdmins() { localStorage.setItem('cosecha_admins', JSON.stringify
 function renderLoginSelect() {
   const todos = [
     ...admins.map(a => ({ ...a, label: a.nombre + ' (Admin)' })),
-    ...jefes.map(j => ({ ...j, label: j.nombre + ' (Jefe)' }))
+    ...jefes.map(j => ({ ...j, label: j.nombre + ' (Cargado por)' }))
   ];
   const sel = document.getElementById('login-jefe');
   sel.innerHTML = '<option value="">— seleccionar —</option>' +
@@ -815,7 +815,7 @@ function verificarPin() {
     jefeActual = usuario;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-app').style.display = 'flex';
-    document.getElementById('header-jefe').textContent = usuario.nombre + (esAdmin() ? ' · Admin' : ' · Jefe');
+    document.getElementById('header-jefe').textContent = usuario.nombre + (esAdmin() ? ' · Admin' : ' · Cargado por');
     document.getElementById('sheets-url').value = sheetsURL;
     document.getElementById('sheets-hoja').value = sheetsHoja;
     if (sheetsURL) document.getElementById('sheets-status').textContent = 'Configurado ✓';
@@ -860,7 +860,7 @@ function agregarJefe() {
 
 function eliminarJefe(id) {
   if (jefes.length <= 1) { alert('Debe quedar al menos un jefe'); return; }
-  if (!confirm('¿Eliminar este jefe?')) return;
+  if (!confirm('¿Eliminar este usuario?')) return;
   jefes = jefes.filter(j => j.id !== id);
   guardarJefes();
   renderJefesList();
@@ -875,7 +875,7 @@ function renderJefesList() {
       <div class="avatar" style="background:#e8f0fe; color:#1a56b0">${j.nombre[0].toUpperCase()}</div>
       <div class="worker-info">
         <div class="worker-name">${j.nombre}</div>
-        <div class="worker-id">Jefe de cosecha · PIN: ••••</div>
+        <div class="worker-id">Cargado por · PIN: ••••</div>
       </div>
       ${puedeEliminar ? `<button class="icon-btn" onclick="eliminarJefe('${j.id}')" aria-label="Eliminar">
         <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
@@ -1162,7 +1162,7 @@ function renderRegistros() {
       <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px">
         <div style="flex:1; min-width:0">
           <div class="record-name">${r.nombre} <span class="tag">${r.variedad}</span></div>
-          <div class="record-detail">${r.jaulas} jaulas · Cuadro ${r.cuadro} · ${r.fecha} ${r.hora}${r.obs ? ' · ' + r.obs : ''} · <span style="color:var(--green);font-weight:500">↑ ${r.jefeNombre || 'N/D'}</span></div>
+          <div class="record-detail">${r.jaulas} jaulas · Cuadro ${r.cuadro} · ${r.fecha} ${r.hora}${r.obs ? ' · ' + r.obs : ''} · <span style="color:var(--green);font-weight:500">Cargado por: ${r.jefeNombre || 'N/D'}</span></div>
         </div>
         <div style="display:flex; gap:6px; flex-shrink:0; margin-top:2px">
           <button class="icon-btn" onclick="abrirEditar(${i})" aria-label="Editar" title="Editar">
@@ -1257,7 +1257,7 @@ function guardarConfig() {
 
 function exportarCSV() {
   if (!registros.length) { alert('Sin registros para exportar'); return; }
-  const rows = [['Fecha','Hora','ID Cosechador','Cosechador','Jaulas','Variedad','Cuadro','Observaciones','Jefe'],
+  const rows = [['Fecha','Hora','ID Cosechador','Cosechador','Jaulas','Variedad','Cuadro','Observaciones','Cargado por'],
     ...registros.map(r => [r.fecha, r.hora, r.id, r.nombre, r.jaulas, r.variedad, r.cuadro, r.obs || '', r.jefeNombre || ''])];
   const csv = rows.map(r => r.join(',')).join('\n');
   const a = document.createElement('a');

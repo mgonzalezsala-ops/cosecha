@@ -565,6 +565,30 @@
       </button>
     </div>
 
+    <!-- ADMINISTRADORES -->
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
+      <span style="font-size:15px; font-weight:600">Administradores</span>
+      <button class="btn btn-sm btn-primary" onclick="toggleFormAdmin()">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Agregar
+      </button>
+    </div>
+    <div class="card" id="form-admin" style="display:none; margin-bottom:12px">
+      <div class="field">
+        <label>Nombre</label>
+        <input type="text" id="nuevo-admin-nombre" placeholder="Ej: Pedro">
+      </div>
+      <div class="field">
+        <label>PIN (4 dígitos)</label>
+        <input type="number" id="nuevo-admin-pin" placeholder="Ej: 1234" maxlength="4" inputmode="numeric">
+      </div>
+      <button class="btn btn-primary" onclick="agregarAdmin()" style="margin-top:6px">Crear administrador</button>
+      <button class="btn btn-ghost" onclick="toggleFormAdmin()">Cancelar</button>
+    </div>
+    <div class="card" style="padding:4px 16px; margin-bottom:16px">
+      <div id="admins-list"></div>
+    </div>
+
     <!-- JEFES -->
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
       <span style="font-size:15px; font-weight:600">Jefes de cosecha</span>
@@ -717,42 +741,47 @@
 <script>
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycby66js0chz3v9GM7714aUl3H5WixpEfZa4wdCdLVk0KX20h_UrpEipKTgUb05qbEQtvCg/exec';
 
+const ADMINS_DEFAULT = [
+  { id: 'A001', nombre: 'Daniel', pin: '8097', rol: 'admin' },
+  { id: 'A002', nombre: 'Mariano', pin: '7422', rol: 'admin' }
+];
+
 const JEFES_DEFAULT = [
-  { id: 'J001', nombre: 'Gabriel', pin: '8414' },
-  { id: 'J002', nombre: 'Mariana', pin: '4469' }
+  { id: 'J001', nombre: 'Gabriel', pin: '8414', rol: 'jefe' },
+  { id: 'J002', nombre: 'Mariana', pin: '4469', rol: 'jefe' }
 ];
 
 let workers = JSON.parse(localStorage.getItem('cosecha_workers') || '[]');
 let registros = JSON.parse(localStorage.getItem('cosecha_registros') || '[]');
+let admins = JSON.parse(localStorage.getItem('cosecha_admins') || JSON.stringify(ADMINS_DEFAULT));
 let jefes = JSON.parse(localStorage.getItem('cosecha_jefes') || JSON.stringify(JEFES_DEFAULT));
 let workerActual = null;
-let jefeActual = null;
+let jefeActual = null; // usuario logueado (admin o jefe)
 let sheetsURL = localStorage.getItem('cosecha_sheets_url') || SHEETS_URL;
 let sheetsHoja = localStorage.getItem('cosecha_sheets_hoja') || 'Hoja1';
 let scanStream = null;
 let scanInterval = null;
 let pinIngresado = '';
 
+function esAdmin() { return jefeActual && jefeActual.rol === 'admin'; }
+
 // Init — mostrar login
 renderLoginSelect();
 
-function guardarWorkers() {
-  localStorage.setItem('cosecha_workers', JSON.stringify(workers));
-}
-
-function guardarRegistros() {
-  localStorage.setItem('cosecha_registros', JSON.stringify(registros));
-}
-
-function guardarJefes() {
-  localStorage.setItem('cosecha_jefes', JSON.stringify(jefes));
-}
+function guardarWorkers() { localStorage.setItem('cosecha_workers', JSON.stringify(workers)); }
+function guardarRegistros() { localStorage.setItem('cosecha_registros', JSON.stringify(registros)); }
+function guardarJefes() { localStorage.setItem('cosecha_jefes', JSON.stringify(jefes)); }
+function guardarAdmins() { localStorage.setItem('cosecha_admins', JSON.stringify(admins)); }
 
 // LOGIN
 function renderLoginSelect() {
+  const todos = [
+    ...admins.map(a => ({ ...a, label: a.nombre + ' (Admin)' })),
+    ...jefes.map(j => ({ ...j, label: j.nombre + ' (Jefe)' }))
+  ];
   const sel = document.getElementById('login-jefe');
   sel.innerHTML = '<option value="">— seleccionar —</option>' +
-    jefes.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+    todos.map(u => `<option value="${u.id}">${u.label}</option>`).join('');
 }
 
 function pinKey(digit) {
@@ -775,27 +804,27 @@ function actualizarDots() {
 }
 
 function verificarPin() {
-  const jefeId = document.getElementById('login-jefe').value;
-  if (!jefeId) {
+  const userId = document.getElementById('login-jefe').value;
+  if (!userId) {
     document.getElementById('login-error').textContent = 'Seleccioná tu nombre primero';
-    pinIngresado = '';
-    actualizarDots();
-    return;
+    pinIngresado = ''; actualizarDots(); return;
   }
-  const jefe = jefes.find(j => j.id === jefeId);
-  if (jefe && jefe.pin === pinIngresado) {
-    jefeActual = jefe;
+  const todos = [...admins, ...jefes];
+  const usuario = todos.find(u => u.id === userId);
+  if (usuario && usuario.pin === pinIngresado) {
+    jefeActual = usuario;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('main-app').style.display = 'flex';
-    document.getElementById('header-jefe').textContent = jefe.nombre;
+    document.getElementById('header-jefe').textContent = usuario.nombre + (esAdmin() ? ' · Admin' : ' · Jefe');
     document.getElementById('sheets-url').value = sheetsURL;
     document.getElementById('sheets-hoja').value = sheetsHoja;
     if (sheetsURL) document.getElementById('sheets-status').textContent = 'Configurado ✓';
+    // Mostrar u ocultar panel admin según rol
+    document.getElementById('nav-admin').style.display = esAdmin() ? '' : 'none';
     renderAll();
   } else {
     document.getElementById('login-error').textContent = 'PIN incorrecto. Intentá de nuevo.';
-    pinIngresado = '';
-    actualizarDots();
+    pinIngresado = ''; actualizarDots();
   }
 }
 
@@ -840,14 +869,61 @@ function eliminarJefe(id) {
 
 function renderJefesList() {
   const el = document.getElementById('jefes-list');
+  const puedeEliminar = esAdmin();
   el.innerHTML = jefes.map(j => `
     <div class="worker-row">
       <div class="avatar" style="background:#e8f0fe; color:#1a56b0">${j.nombre[0].toUpperCase()}</div>
       <div class="worker-info">
         <div class="worker-name">${j.nombre}</div>
-        <div class="worker-id">PIN: ••••</div>
+        <div class="worker-id">Jefe de cosecha · PIN: ••••</div>
       </div>
-      <button class="icon-btn" onclick="eliminarJefe('${j.id}')" aria-label="Eliminar">
+      ${puedeEliminar ? `<button class="icon-btn" onclick="eliminarJefe('${j.id}')" aria-label="Eliminar">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+      </button>` : '<span style="font-size:11px;color:var(--gray-3)">Solo lectura</span>'}
+    </div>`).join('');
+}
+
+// ADMINS
+function toggleFormAdmin() {
+  const f = document.getElementById('form-admin');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function agregarAdmin() {
+  const nombre = document.getElementById('nuevo-admin-nombre').value.trim();
+  const pin = document.getElementById('nuevo-admin-pin').value.trim();
+  if (!nombre || pin.length !== 4) { alert('Completá nombre y PIN de 4 dígitos'); return; }
+  const id = 'A' + Date.now();
+  admins.push({ id, nombre, pin, rol: 'admin' });
+  guardarAdmins();
+  toggleFormAdmin();
+  document.getElementById('nuevo-admin-nombre').value = '';
+  document.getElementById('nuevo-admin-pin').value = '';
+  renderAdminsList();
+  renderLoginSelect();
+}
+
+function eliminarAdmin(id) {
+  if (id === jefeActual.id) { alert('No podés eliminarte a vos mismo'); return; }
+  if (admins.length <= 1) { alert('Debe quedar al menos un administrador'); return; }
+  if (!confirm('¿Eliminar este administrador?')) return;
+  admins = admins.filter(a => a.id !== id);
+  guardarAdmins();
+  renderAdminsList();
+  renderLoginSelect();
+}
+
+function renderAdminsList() {
+  const el = document.getElementById('admins-list');
+  if (!el) return;
+  el.innerHTML = admins.map(a => `
+    <div class="worker-row">
+      <div class="avatar" style="background:#fef3e2; color:#c47a1a">${a.nombre[0].toUpperCase()}</div>
+      <div class="worker-info">
+        <div class="worker-name">${a.nombre}</div>
+        <div class="worker-id">Administrador · PIN: ••••</div>
+      </div>
+      <button class="icon-btn" onclick="eliminarAdmin('${a.id}')" aria-label="Eliminar">
         <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
       </button>
     </div>`).join('');
@@ -1014,6 +1090,7 @@ function agregarWorker() {
 }
 
 function eliminarWorker(id) {
+  if (!esAdmin()) { alert('Solo los administradores pueden eliminar cosechadores'); return; }
   if (!confirm('¿Eliminar este cosechador?')) return;
   workers = workers.filter(w => w.id !== id);
   guardarWorkers();
@@ -1025,6 +1102,7 @@ function renderAll() {
   renderQRs();
   renderManualPicker();
   renderJefesList();
+  renderAdminsList();
 }
 
 function renderWorkersList() {
@@ -1218,6 +1296,7 @@ function imprimirCarnets() {
 }
 
 function limpiarHistorial() {
+  if (!esAdmin()) { alert('Solo los administradores pueden limpiar el historial'); return; }
   if (!confirm('¿Limpiar todo el historial local? Los datos en Google Sheets no se borran.')) return;
   registros = [];
   guardarRegistros();

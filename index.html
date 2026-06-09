@@ -254,7 +254,48 @@
     #print-carnets { display: block !important; }
   }
 
-  /* CARNETS PARA IMPRIMIR */
+  /* LOGIN */
+  .login-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--gray-0);
+  }
+  .login-logo {
+    width: 72px; height: 72px;
+    background: var(--green);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .login-logo svg { width: 36px; height: 36px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .login-title { font-size: 22px; font-weight: 700; color: var(--gray-5); margin-bottom: 6px; text-align: center; }
+  .login-sub { font-size: 14px; color: var(--gray-4); margin-bottom: 28px; text-align: center; }
+  .login-card { background: var(--white); border: 1px solid var(--gray-2); border-radius: var(--radius); padding: 20px; width: 100%; max-width: 320px; }
+  .login-card .field { margin-bottom: 14px; }
+  .pin-dots { display: flex; justify-content: center; gap: 12px; margin: 16px 0 8px; }
+  .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--gray-2); background: transparent; transition: background 0.15s, border-color 0.15s; }
+  .pin-dot.filled { background: var(--green); border-color: var(--green); }
+  .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+  .pin-key {
+    padding: 14px;
+    border: 1px solid var(--gray-2); border-radius: var(--radius-sm);
+    background: var(--white); font-size: 18px; font-weight: 600;
+    color: var(--gray-5); cursor: pointer; text-align: center;
+    font-family: 'DM Mono', monospace;
+    transition: background 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pin-key:active { background: var(--gray-1); }
+  .pin-key.del { font-size: 14px; color: var(--gray-4); }
+  .pin-key.empty { border: none; background: transparent; cursor: default; }
+  .login-error { font-size: 13px; color: var(--red); text-align: center; margin-top: 8px; min-height: 18px; }
+  .jefe-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--green-light); color: var(--green); font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 999px; }
+
+
   #print-carnets {
     display: none;
   }
@@ -329,16 +370,57 @@
 </style>
 </head>
 <body>
-<div class="app">
+<div id="login-screen" class="login-screen">
+  <div class="login-logo">
+    <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+  </div>
+  <div class="login-title">Sistema de Cosecha</div>
+  <div class="login-sub">Ingresá con tu nombre y PIN</div>
+  <div class="login-card">
+    <div class="field">
+      <label>¿Quién sos?</label>
+      <select id="login-jefe">
+        <option value="">— seleccionar —</option>
+      </select>
+    </div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key empty"></button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<div class="app" id="main-app" style="display:none">
 
   <!-- HEADER -->
   <div class="header">
     <div class="header-icon">
       <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
     </div>
-    <div>
+    <div style="flex:1">
       <div class="header-title">Sistema de Cosecha</div>
       <div class="header-sub" id="header-sub">Registro de jaulas</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:12px; color:rgba(255,255,255,0.8); font-weight:500" id="header-jefe"></div>
+      <button onclick="cerrarSesion()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:11px;cursor:pointer;padding:0;margin-top:2px">Salir</button>
     </div>
   </div>
 
@@ -483,6 +565,30 @@
       </button>
     </div>
 
+    <!-- JEFES -->
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
+      <span style="font-size:15px; font-weight:600">Jefes de cosecha</span>
+      <button class="btn btn-sm btn-primary" onclick="toggleFormJefe()">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Agregar
+      </button>
+    </div>
+    <div class="card" id="form-jefe" style="display:none; margin-bottom:12px">
+      <div class="field">
+        <label>Nombre</label>
+        <input type="text" id="nuevo-jefe-nombre" placeholder="Ej: Carlos">
+      </div>
+      <div class="field">
+        <label>PIN (4 dígitos)</label>
+        <input type="number" id="nuevo-jefe-pin" placeholder="Ej: 1234" maxlength="4" inputmode="numeric">
+      </div>
+      <button class="btn btn-primary" onclick="agregarJefe()" style="margin-top:6px">Crear jefe</button>
+      <button class="btn btn-ghost" onclick="toggleFormJefe()">Cancelar</button>
+    </div>
+    <div class="card" style="padding:4px 16px; margin-bottom:16px">
+      <div id="jefes-list"></div>
+    </div>
+
     <!-- AGREGAR WORKER -->
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
       <span style="font-size:15px; font-weight:600">Cosechadores</span>
@@ -611,19 +717,24 @@
 <script>
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycby66js0chz3v9GM7714aUl3H5WixpEfZa4wdCdLVk0KX20h_UrpEipKTgUb05qbEQtvCg/exec';
 
+const JEFES_DEFAULT = [
+  { id: 'J001', nombre: 'Gabriel', pin: '8414' },
+  { id: 'J002', nombre: 'Mariana', pin: '4469' }
+];
+
 let workers = JSON.parse(localStorage.getItem('cosecha_workers') || '[]');
 let registros = JSON.parse(localStorage.getItem('cosecha_registros') || '[]');
+let jefes = JSON.parse(localStorage.getItem('cosecha_jefes') || JSON.stringify(JEFES_DEFAULT));
 let workerActual = null;
+let jefeActual = null;
 let sheetsURL = localStorage.getItem('cosecha_sheets_url') || SHEETS_URL;
 let sheetsHoja = localStorage.getItem('cosecha_sheets_hoja') || 'Hoja1';
 let scanStream = null;
 let scanInterval = null;
+let pinIngresado = '';
 
-// Init
-document.getElementById('sheets-url').value = sheetsURL;
-document.getElementById('sheets-hoja').value = sheetsHoja;
-if (sheetsURL) document.getElementById('sheets-status').textContent = 'Configurado ✓';
-renderAll();
+// Init — mostrar login
+renderLoginSelect();
 
 function guardarWorkers() {
   localStorage.setItem('cosecha_workers', JSON.stringify(workers));
@@ -631,6 +742,115 @@ function guardarWorkers() {
 
 function guardarRegistros() {
   localStorage.setItem('cosecha_registros', JSON.stringify(registros));
+}
+
+function guardarJefes() {
+  localStorage.setItem('cosecha_jefes', JSON.stringify(jefes));
+}
+
+// LOGIN
+function renderLoginSelect() {
+  const sel = document.getElementById('login-jefe');
+  sel.innerHTML = '<option value="">— seleccionar —</option>' +
+    jefes.map(j => `<option value="${j.id}">${j.nombre}</option>`).join('');
+}
+
+function pinKey(digit) {
+  if (pinIngresado.length >= 4) return;
+  pinIngresado += digit;
+  actualizarDots();
+  if (pinIngresado.length === 4) verificarPin();
+}
+
+function pinDel() {
+  pinIngresado = pinIngresado.slice(0, -1);
+  actualizarDots();
+  document.getElementById('login-error').textContent = '';
+}
+
+function actualizarDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById('dot-' + i).classList.toggle('filled', i < pinIngresado.length);
+  }
+}
+
+function verificarPin() {
+  const jefeId = document.getElementById('login-jefe').value;
+  if (!jefeId) {
+    document.getElementById('login-error').textContent = 'Seleccioná tu nombre primero';
+    pinIngresado = '';
+    actualizarDots();
+    return;
+  }
+  const jefe = jefes.find(j => j.id === jefeId);
+  if (jefe && jefe.pin === pinIngresado) {
+    jefeActual = jefe;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'flex';
+    document.getElementById('header-jefe').textContent = jefe.nombre;
+    document.getElementById('sheets-url').value = sheetsURL;
+    document.getElementById('sheets-hoja').value = sheetsHoja;
+    if (sheetsURL) document.getElementById('sheets-status').textContent = 'Configurado ✓';
+    renderAll();
+  } else {
+    document.getElementById('login-error').textContent = 'PIN incorrecto. Intentá de nuevo.';
+    pinIngresado = '';
+    actualizarDots();
+  }
+}
+
+function cerrarSesion() {
+  jefeActual = null;
+  pinIngresado = '';
+  actualizarDots();
+  document.getElementById('login-jefe').value = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// JEFES ADMIN
+function toggleFormJefe() {
+  const f = document.getElementById('form-jefe');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function agregarJefe() {
+  const nombre = document.getElementById('nuevo-jefe-nombre').value.trim();
+  const pin = document.getElementById('nuevo-jefe-pin').value.trim();
+  if (!nombre || pin.length !== 4) { alert('Completá nombre y PIN de 4 dígitos'); return; }
+  const id = 'J' + Date.now();
+  jefes.push({ id, nombre, pin });
+  guardarJefes();
+  toggleFormJefe();
+  document.getElementById('nuevo-jefe-nombre').value = '';
+  document.getElementById('nuevo-jefe-pin').value = '';
+  renderJefesList();
+  renderLoginSelect();
+}
+
+function eliminarJefe(id) {
+  if (jefes.length <= 1) { alert('Debe quedar al menos un jefe'); return; }
+  if (!confirm('¿Eliminar este jefe?')) return;
+  jefes = jefes.filter(j => j.id !== id);
+  guardarJefes();
+  renderJefesList();
+  renderLoginSelect();
+}
+
+function renderJefesList() {
+  const el = document.getElementById('jefes-list');
+  el.innerHTML = jefes.map(j => `
+    <div class="worker-row">
+      <div class="avatar" style="background:#e8f0fe; color:#1a56b0">${j.nombre[0].toUpperCase()}</div>
+      <div class="worker-info">
+        <div class="worker-name">${j.nombre}</div>
+        <div class="worker-id">PIN: ••••</div>
+      </div>
+      <button class="icon-btn" onclick="eliminarJefe('${j.id}')" aria-label="Eliminar">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+      </button>
+    </div>`).join('');
 }
 
 function goScreen(name) {
@@ -740,6 +960,8 @@ async function guardarCarga() {
     nombre: workerActual.nombre,
     jaulas: parseInt(jaulas),
     variedad, cuadro, obs,
+    jefeId: jefeActual ? jefeActual.id : '',
+    jefeNombre: jefeActual ? jefeActual.nombre : '',
     hoja: sheetsHoja
   };
   registros.unshift(registro);
@@ -802,6 +1024,7 @@ function renderAll() {
   renderWorkersList();
   renderQRs();
   renderManualPicker();
+  renderJefesList();
 }
 
 function renderWorkersList() {
@@ -861,7 +1084,7 @@ function renderRegistros() {
       <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px">
         <div style="flex:1; min-width:0">
           <div class="record-name">${r.nombre} <span class="tag">${r.variedad}</span></div>
-          <div class="record-detail">${r.jaulas} jaulas · Cuadro ${r.cuadro} · ${r.fecha} ${r.hora}${r.obs ? ' · ' + r.obs : ''}</div>
+          <div class="record-detail">${r.jaulas} jaulas · Cuadro ${r.cuadro} · ${r.fecha} ${r.hora}${r.obs ? ' · ' + r.obs : ''} · <span style="color:var(--green);font-weight:500">↑ ${r.jefeNombre || 'N/D'}</span></div>
         </div>
         <div style="display:flex; gap:6px; flex-shrink:0; margin-top:2px">
           <button class="icon-btn" onclick="abrirEditar(${i})" aria-label="Editar" title="Editar">
@@ -956,8 +1179,8 @@ function guardarConfig() {
 
 function exportarCSV() {
   if (!registros.length) { alert('Sin registros para exportar'); return; }
-  const rows = [['Fecha','Hora','ID','Nombre','Jaulas','Variedad','Cuadro','Observaciones'],
-    ...registros.map(r => [r.fecha, r.hora, r.id, r.nombre, r.jaulas, r.variedad, r.cuadro, r.obs || ''])];
+  const rows = [['Fecha','Hora','ID Cosechador','Cosechador','Jaulas','Variedad','Cuadro','Observaciones','Jefe'],
+    ...registros.map(r => [r.fecha, r.hora, r.id, r.nombre, r.jaulas, r.variedad, r.cuadro, r.obs || '', r.jefeNombre || ''])];
   const csv = rows.map(r => r.join(',')).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
